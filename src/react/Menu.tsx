@@ -1,20 +1,20 @@
-import { Fragment, useState } from 'react'
-import type { ComponentType, ReactNode } from 'react'
-import type { Menu as MenuModel, MenuItem, MenuItemState } from '../types.js'
+import type { ComponentType, ReactNode } from "react";
+import { Fragment, useState } from "react";
+import type { MenuItem, MenuItemState, Menu as MenuModel } from "../types.js";
 
 /** Expanded state for a section that doesn't set `defaultOpen`. */
-const DEFAULT_OPEN = true
+const DEFAULT_OPEN = true;
 
 /** The single outer shell wrapping the whole menu (the consumer's `<nav>`/`<ul>`). */
 export interface MenuContainerProps {
-	children: ReactNode
+	children: ReactNode;
 }
 
 /** Fields every rendered entry receives, collapsible or not. */
 interface MenuItemPropsBase {
-	item: MenuItem
+	item: MenuItem;
 	/** Nesting depth of this item: `0` at the top, `+1` per level down. */
-	level: number
+	level: number;
 }
 
 /**
@@ -24,13 +24,13 @@ interface MenuItemPropsBase {
  * `children`. The consumer still owns the link/icon/active state (its router).
  */
 export interface CollapsibleMenuItemProps extends MenuItemPropsBase {
-	collapsible: true
+	collapsible: true;
 	/** This section's expanded state. */
-	open: boolean
+	open: boolean;
 	/** Flip this section's expanded state. */
-	toggle: () => void
+	toggle: () => void;
 	/** The rendered nested level. */
-	children: ReactNode
+	children: ReactNode;
 }
 
 /**
@@ -39,23 +39,23 @@ export interface CollapsibleMenuItemProps extends MenuItemPropsBase {
  * There is nothing to toggle, so `open`/`toggle` are absent from the type.
  */
 export interface StaticMenuItemProps extends MenuItemPropsBase {
-	collapsible: false
+	collapsible: false;
 	/** The rendered nested level for an always-open group; absent for a leaf. */
-	children?: ReactNode
+	children?: ReactNode;
 }
 
 /** Discriminated on `collapsible`: only the collapsible variant has `open`/`toggle`. */
-export type MenuItemProps = CollapsibleMenuItemProps | StaticMenuItemProps
+export type MenuItemProps = CollapsibleMenuItemProps | StaticMenuItemProps;
 
 /** The consumer-supplied components the menu renders through. */
 export interface MenuComponents {
-	Container: ComponentType<MenuContainerProps>
-	Item: ComponentType<MenuItemProps>
+	Container: ComponentType<MenuContainerProps>;
+	Item: ComponentType<MenuItemProps>;
 }
 
 export interface MenuProps {
-	menu: MenuModel
-	components: MenuComponents
+	menu: MenuModel;
+	components: MenuComponents;
 }
 
 /**
@@ -77,31 +77,45 @@ export interface MenuProps {
 export function Menu({ menu, components: { Container, Item } }: MenuProps) {
 	// Disclosure state of collapsible sections, keyed by position path ("0.2.1").
 	// Kept above the tree so a section remembers its state even while collapsed.
-	const [openByPath, setOpenByPath] = useState<Record<string, boolean>>({})
+	const [openByPath, setOpenByPath] = useState<Record<string, boolean>>({});
 
 	const toggle = (path: string, item: MenuItem): void =>
 		setOpenByPath((state) => ({
 			...state,
 			[path]: !(state[path] ?? item.defaultOpen ?? DEFAULT_OPEN),
-		}))
+		}));
 
-	function renderLevel(items: MenuModel, parentPath: string, level: number): ReactNode {
+	function renderLevel(
+		items: MenuModel,
+		parentPath: string,
+		level: number,
+	): ReactNode {
 		return items.map((item, index) => {
-			const path = parentPath === '' ? String(index) : `${parentPath}.${index}`
-			const childItems = item.items ?? []
-			const hasChildren = childItems.length > 0
-			const isCollapsible = hasChildren && item.collapsible !== false
-			const children = hasChildren ? renderLevel(childItems, path, level + 1) : undefined
+			const path = parentPath === "" ? String(index) : `${parentPath}.${index}`;
+			const childItems = item.items ?? [];
+			const hasChildren = childItems.length > 0;
+			const isCollapsible = hasChildren && item.collapsible !== false;
+			const children = hasChildren
+				? renderLevel(childItems, path, level + 1)
+				: undefined;
 			// A collapsible section follows its toggle; a static group is always
 			// open; a leaf has nothing to open.
-			const open = isCollapsible ? (openByPath[path] ?? item.defaultOpen ?? DEFAULT_OPEN) : hasChildren
-			const slotState: MenuItemState = { open, level }
+			const open = isCollapsible
+				? (openByPath[path] ?? item.defaultOpen ?? DEFAULT_OPEN)
+				: hasChildren;
+			const slotState: MenuItemState = { open, level };
 
 			return (
 				<Fragment key={path}>
 					{item.before?.(item, slotState)}
 					{isCollapsible ? (
-						<Item collapsible item={item} level={level} open={open} toggle={() => toggle(path, item)}>
+						<Item
+							collapsible
+							item={item}
+							level={level}
+							open={open}
+							toggle={() => toggle(path, item)}
+						>
 							{children}
 						</Item>
 					) : (
@@ -111,9 +125,9 @@ export function Menu({ menu, components: { Container, Item } }: MenuProps) {
 					)}
 					{item.after?.(item, slotState)}
 				</Fragment>
-			)
-		})
+			);
+		});
 	}
 
-	return <Container>{renderLevel(menu, '', 0)}</Container>
+	return <Container>{renderLevel(menu, "", 0)}</Container>;
 }

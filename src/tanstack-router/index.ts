@@ -1,7 +1,7 @@
-import type { ReactNode } from 'react'
-import type { AnyRoute } from '@tanstack/react-router'
-import type { RoutePaths } from '@tanstack/router-core'
-import type { MenuItemInput } from '../types.js'
+import type { AnyRoute } from "@tanstack/react-router";
+import type { RoutePaths } from "@tanstack/router-core";
+import type { ReactNode } from "react";
+import type { MenuItemInput } from "../types.js";
 
 /**
  * Per-route menu metadata: how the route *describes itself* in a menu. Read by
@@ -18,27 +18,27 @@ import type { MenuItemInput } from '../types.js'
  * ```
  */
 export interface RouteMenuMeta {
-  /** Display title. Falls back to a title-cased last path segment. */
-  title?: string
-  /** Sort hint among siblings (lower first). */
-  order?: number
-  icon?: ReactNode
+	/** Display title. Falls back to a title-cased last path segment. */
+	title?: string;
+	/** Sort hint among siblings (lower first). */
+	order?: number;
+	icon?: ReactNode;
 }
 
-declare module '@tanstack/router-core' {
-  interface StaticDataRouteOption {
-    menu?: { meta?: RouteMenuMeta }
-  }
+declare module "@tanstack/router-core" {
+	interface StaticDataRouteOption {
+		menu?: { meta?: RouteMenuMeta };
+	}
 }
 
 export interface MenuFromRouteTreeOptions<TRouteTree extends AnyRoute> {
-  /** Route full-paths to exclude (and their subtrees). Typed against the tree. */
-  omit?: RoutePaths<TRouteTree>[]
-  /**
-   * Where per-route metadata lives. Default reads
-   * `route.options.staticData?.menu?.meta`.
-   */
-  getMeta?: (route: AnyRoute) => RouteMenuMeta | undefined
+	/** Route full-paths to exclude (and their subtrees). Typed against the tree. */
+	omit?: RoutePaths<TRouteTree>[];
+	/**
+	 * Where per-route metadata lives. Default reads
+	 * `route.options.staticData?.menu?.meta`.
+	 */
+	getMeta?: (route: AnyRoute) => RouteMenuMeta | undefined;
 }
 
 /**
@@ -48,8 +48,8 @@ export interface MenuFromRouteTreeOptions<TRouteTree extends AnyRoute> {
  * paths through the spread — no phantom brand needed.
  */
 export type RouteMenuInput<TRouteTree extends AnyRoute> = Partial<
-  Record<RoutePaths<TRouteTree>, MenuItemInput<RoutePaths<TRouteTree>>>
->
+	Record<RoutePaths<TRouteTree>, MenuItemInput<RoutePaths<TRouteTree>>>
+>;
 
 /**
  * Build a keyed menu input from a TanStack Router route tree. Each entry is
@@ -75,74 +75,83 @@ export type RouteMenuInput<TRouteTree extends AnyRoute> = Partial<
  *   come from `meta`.
  */
 export function menuFromRouteTree<TRouteTree extends AnyRoute>(
-  routeTree: TRouteTree,
-  options: MenuFromRouteTreeOptions<TRouteTree> = {},
+	routeTree: TRouteTree,
+	options: MenuFromRouteTreeOptions<TRouteTree> = {},
 ): RouteMenuInput<TRouteTree> {
-  const omit = new Set<string>(options.omit ?? [])
-  const getMeta = options.getMeta ?? defaultGetMeta
-  const entries: Record<string, MenuItemInput> = {}
+	const omit = new Set<string>(options.omit ?? []);
+	const getMeta = options.getMeta ?? defaultGetMeta;
+	const entries: Record<string, MenuItemInput> = {};
 
-  const visit = (route: AnyRoute, parentHref: string | undefined, omitted: boolean): void => {
-    let childParentHref = parentHref
-    let childOmitted = omitted
+	const visit = (
+		route: AnyRoute,
+		parentHref: string | undefined,
+		omitted: boolean,
+	): void => {
+		let childParentHref = parentHref;
+		let childOmitted = omitted;
 
-    if (!isTransparent(route)) {
-      const fullPath = fullPathOf(route)
-      if (omit.has(fullPath)) {
-        childOmitted = true // drop this route and its subtree
-      } else if (!omitted) {
-        entries[fullPath] = toEntry(fullPath, parentHref, getMeta(route))
-        childParentHref = fullPath
-      }
-    }
+		if (!isTransparent(route)) {
+			const fullPath = fullPathOf(route);
+			if (omit.has(fullPath)) {
+				childOmitted = true; // drop this route and its subtree
+			} else if (!omitted) {
+				entries[fullPath] = toEntry(fullPath, parentHref, getMeta(route));
+				childParentHref = fullPath;
+			}
+		}
 
-    for (const child of childrenOf(route)) visit(child, childParentHref, childOmitted)
-  }
+		for (const child of childrenOf(route))
+			visit(child, childParentHref, childOmitted);
+	};
 
-  visit(routeTree, undefined, false)
-  return entries as RouteMenuInput<TRouteTree>
+	visit(routeTree, undefined, false);
+	return entries as RouteMenuInput<TRouteTree>;
 }
 
 /** Build the menu entry for a navigable route. */
 function toEntry(
-  fullPath: string,
-  parentHref: string | undefined,
-  meta: RouteMenuMeta | undefined,
+	fullPath: string,
+	parentHref: string | undefined,
+	meta: RouteMenuMeta | undefined,
 ): MenuItemInput {
-  return {
-    title: meta?.title ?? titleFromPath(fullPath),
-    ...(parentHref != null && { parent: parentHref }),
-    ...(meta?.order != null && { order: meta.order }),
-    ...(meta?.icon != null && { icon: meta.icon }),
-  }
+	return {
+		title: meta?.title ?? titleFromPath(fullPath),
+		...(parentHref != null && { parent: parentHref }),
+		...(meta?.order != null && { order: meta.order }),
+		...(meta?.icon != null && { icon: meta.icon }),
+	};
 }
 
 /** A route with no own path (root, pathless layout): its children bubble up. */
 function isTransparent(route: AnyRoute): boolean {
-  const isRoot = (route as { isRoot?: boolean }).isRoot === true
-  const path = (route as { path?: string }).path
-  return isRoot || path == null || path === ''
+	const isRoot = (route as { isRoot?: boolean }).isRoot === true;
+	const path = (route as { path?: string }).path;
+	return isRoot || path == null || path === "";
 }
 
 function fullPathOf(route: AnyRoute): string {
-  return (route as { fullPath: string }).fullPath
+	return (route as { fullPath: string }).fullPath;
 }
 
 /** Children of a route, normalized to an array (TanStack may store a record). */
 function childrenOf(route: AnyRoute): AnyRoute[] {
-  const children = (route as { children?: unknown }).children
-  if (!children) return []
-  return Array.isArray(children) ? children : Object.values(children as Record<string, AnyRoute>)
+	const children = (route as { children?: unknown }).children;
+	if (!children) return [];
+	return Array.isArray(children)
+		? children
+		: Object.values(children as Record<string, AnyRoute>);
 }
 
 function defaultGetMeta(route: AnyRoute): RouteMenuMeta | undefined {
-  const staticData = route.options?.staticData as { menu?: { meta?: RouteMenuMeta } } | undefined
-  return staticData?.menu?.meta
+	const staticData = route.options?.staticData as
+		| { menu?: { meta?: RouteMenuMeta } }
+		| undefined;
+	return staticData?.menu?.meta;
 }
 
 /** Title-case the last non-empty segment of a path (`/user-settings` → `User Settings`). */
 function titleFromPath(fullPath: string): string {
-  const segment = fullPath.split('/').filter(Boolean).at(-1)
-  if (!segment) return 'Home'
-  return segment.replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+	const segment = fullPath.split("/").filter(Boolean).at(-1);
+	if (!segment) return "Home";
+	return segment.replace(/[-_]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
