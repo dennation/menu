@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { defineMenu } from "../defineMenu.js";
-import type { MenuInput } from "../types.js";
+import { defineMenu } from "../defineMenu";
+import type { MenuInput } from "../types";
 
 describe("defineMenu", () => {
 	it("uses the entry key as the href and keeps insertion order", () => {

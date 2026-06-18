@@ -6,4 +6,4 @@ export {
 	type MenuItemProps,
 	type MenuProps,
 	type StaticMenuItemProps,
-} from "./Menu.js";
+} from "./Menu";

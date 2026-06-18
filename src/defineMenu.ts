@@ -1,4 +1,4 @@
-import type { Menu, MenuInput, MenuItem, MenuItemInput } from "./types.js";
+import type { Menu, MenuInput, MenuItem, MenuItemInput } from "./types";
 
 const isDev = process.env.NODE_ENV !== "production";
 

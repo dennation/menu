@@ -1,4 +1,4 @@
-export { defineMenu } from "./defineMenu.js";
+export { defineMenu } from "./defineMenu";
 export type {
 	Menu,
 	MenuInput,
@@ -7,4 +7,4 @@ export type {
 	MenuItemInput,
 	MenuItemState,
 	MenuSlot,
-} from "./types.js";
+} from "./types";

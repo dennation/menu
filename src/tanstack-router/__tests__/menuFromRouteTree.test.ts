@@ -4,8 +4,8 @@ import {
 	createRouter,
 } from "@tanstack/react-router";
 import { describe, expect, it } from "vitest";
-import { defineMenu } from "../../defineMenu.js";
-import { menuFromRouteTree } from "../index.js";
+import { defineMenu } from "../../defineMenu";
+import { menuFromRouteTree } from "../index";
 
 /** Build an initialized route tree (router init populates `fullPath`). */
 function buildTree() {

@@ -1,6 +1,6 @@
 import type { ComponentType, ReactNode } from "react";
 import { Fragment, useState } from "react";
-import type { MenuItem, MenuItemState, Menu as MenuModel } from "../types.js";
+import type { MenuItem, MenuItemState, Menu as MenuModel } from "../types";
 
 /** Expanded state for a section that doesn't set `defaultOpen`. */
 const DEFAULT_OPEN = true;
