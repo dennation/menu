@@ -15,22 +15,25 @@ export type MenuSlot<M = never> = (
 ) => ReactNode;
 
 /**
- * The opaque per-item metadata field, computed from `M` — the meta type. `M`
- * defaults to `never`: a menu with no meta type has **no usable `meta`** (it's
- * `undefined`). Give a shape (`defineMenu<MyMeta>(…)`, `MenuComponents<MyMeta>`)
- * and the field becomes typed `M` — and, on the **output** node, **required**, so
- * the consumer's `Item` reads `item.meta.x` with no optional chaining.
+ * The opaque per-item metadata field, derived from the meta type `M` — used
+ * **identically** on input and output (whatever `M` you give is what you get,
+ * everywhere). `[M]` wrappers stop the conditional distributing over a union.
  *
- * `[M]` wrappers stop the conditional from distributing over a union `M`.
+ * - `M = never` (no meta type given, the default): no usable `meta` (`undefined`).
+ * - `undefined` is assignable to `M` (e.g. `Foo | undefined`): `meta` is
+ *   **optional** — that's how a consumer opts into omittable meta.
+ * - otherwise: `meta` is **required** and typed `M`, so the consumer's `Item`
+ *   reads `item.meta.x` with no optional chaining.
  */
-type OutputMeta<M> = [M] extends [never] ? { meta?: undefined } : { meta: M };
-/** Like {@link OutputMeta}, but optional — `meta` is never required when authoring. */
-type InputMeta<M> = [M] extends [never] ? { meta?: undefined } : { meta?: M };
+type MetaField<M> = [M] extends [never]
+	? { meta?: undefined }
+	: undefined extends M
+		? { meta?: M }
+		: { meta: M };
 
 /**
  * Fields shared by the stored {@link MenuItem} and the input {@link MenuItemInput}
- * — everything except `meta` (which differs in optionality between the two; see
- * {@link OutputMeta} / {@link InputMeta}).
+ * — everything except `meta` (added via {@link MetaField} on each).
  *
  * Note there is no `match`/`active`: the `<Menu>` renderer is router-agnostic and
  * knows nothing about the active path. Active-state matching lives entirely in the
@@ -59,13 +62,11 @@ export interface MenuItemBase<M = never> {
  * `items` is a (collapsible) section, one with `href` is a link, both → a
  * clickable section. Built by {@link defineMenu} from the keyed {@link MenuInput}.
  *
- * `meta` is **required** here when a meta type `M` is given — {@link defineMenu}
- * guarantees its presence (defaulting a missing one to `{}`), so the renderer's
- * `Item` reads it without optional chaining. `M` should therefore be a shape with
- * only optional fields (a badge, flags, counters); that's the metadata use-case.
+ * `meta` is the same type as on the input (see {@link MetaField}): required when
+ * `M` is a plain type, optional when `M` admits `undefined`.
  */
 export type MenuItem<M = never> = MenuItemBase<M> &
-	OutputMeta<M> & {
+	MetaField<M> & {
 		/** Link target — internal route or external URL. Absent → pure container. */
 		href?: string;
 		/** Child entries → renders as a collapsible section. */
@@ -88,7 +89,7 @@ export type Menu<M = never> = MenuItem<M>[];
  */
 export type MenuItemInput<Parent extends string = string, M = never> =
 	MenuItemBase<M> &
-		InputMeta<M> & {
+		MetaField<M> & {
 			/**
 			 * Link target. Defaults to the entry's key. Set `false` for a
 			 * non-navigable container whose key is just an id.

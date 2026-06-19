@@ -17,10 +17,12 @@ const ORDER_UNSPECIFIED = Number.MAX_SAFE_INTEGER;
 type MenuKeys<T> = Extract<keyof T, string>;
 
 /**
- * Meta-opaque views for the internal pipeline: the runtime never inspects `meta`,
- * so the resolver works against an `unknown`-meta shape and the public result is
- * cast back to `Menu<M>`. (`MenuSlot`'s `meta` makes the item types contravariant
- * in `M`, so threading `M` through every helper would fight variance for no gain.)
+ * Meta-opaque views for the internal pipeline: the runtime never inspects `meta`
+ * (it just rides through), so the resolver works against an `unknown`-meta shape
+ * and the public result is cast back to `Menu<M>`. (`MenuSlot`'s `meta` makes the
+ * item types contravariant in `M`, so threading `M` through every helper would
+ * fight variance for no gain.) With `unknown`, `MetaField` makes `meta` optional,
+ * so a node with or without it is assignable here.
  */
 type LooseInput = MenuItemInput<string, unknown>;
 type LooseNode = MenuItem<unknown>;
@@ -56,10 +58,10 @@ interface PlacedNode {
  * `M` types the opaque per-item `meta`. It's the **first** type parameter so it
  * can be given explicitly (`defineMenu<MyMeta>(…)`) while `T` is still inferred
  * from the argument; left off, it defaults to `never` — the menu has no usable
- * `meta`. With a type, `meta` is optional when authoring but **guaranteed on the
- * output node** (a missing one defaults to `{}`), so the renderer's `Item` reads
- * `item.meta.x` without optional chaining. Either way `parent` stays checked
- * against the inferred keys.
+ * `meta`. With a type, `meta` is that type everywhere — required by default, or
+ * optional if the type admits `undefined` (`defineMenu<MyMeta | undefined>`). It
+ * passes through verbatim; `defineMenu` never reads or synthesizes it. Either way
+ * `parent` stays checked against the inferred keys.
  */
 export function defineMenu<
 	M = never,
@@ -117,13 +119,11 @@ function toPlacedNode(
 	[key, value]: [string, LooseInput],
 	index: number,
 ): PlacedNode {
-	const { href, parent, order, meta, ...fields } = value;
+	const { href, parent, order, ...fields } = value;
 	const resolvedHref = resolveHref(key, href);
+	// `meta` (when present) rides through in `...fields` untouched.
 	const node: LooseNode = {
 		...fields,
-		// Output `meta` is required when a meta type is set; guarantee its presence
-		// so the consumer's `Item` reads `item.meta.x` without optional chaining.
-		meta: meta ?? {},
 		...(resolvedHref != null && { href: resolvedHref }),
 	};
 	return {

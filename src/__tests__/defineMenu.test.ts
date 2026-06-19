@@ -82,12 +82,12 @@ describe("defineMenu", () => {
 		expect(menu[0].items?.map((i) => i.href)).toEqual(["/button", "/x"]);
 	});
 
-	it("carries typed `meta` through and guarantees its presence on the output", () => {
+	it("carries typed `meta` through verbatim (required when the type is plain)", () => {
 		interface Meta {
-			badge?: string;
+			badge: string;
 		}
 		const menu = defineMenu<Meta>({
-			"/components": { title: "Components" },
+			"/components": { title: "Components", meta: { badge: "section" } },
 			"/search": {
 				title: "Search",
 				parent: "/components",
@@ -95,9 +95,20 @@ describe("defineMenu", () => {
 			},
 		});
 		const [section] = menu;
-		const child = section.items?.[0];
-		// `meta` is required on the output node, so no optional chaining on `.meta`.
-		expect(section.meta).toEqual({});
-		expect(child?.meta).toEqual({ badge: "new" });
+		// `meta` is required, so no optional chaining on `.meta` on the output.
+		expect(section.meta.badge).toBe("section");
+		expect(section.items?.[0].meta.badge).toBe("new");
+	});
+
+	it("makes `meta` optional (and omittable) when the type admits undefined", () => {
+		interface Meta {
+			badge?: string;
+		}
+		const menu = defineMenu<Meta | undefined>({
+			"/a": { title: "A" }, // meta omitted — allowed
+			"/b": { title: "B", meta: { badge: "new" } },
+		});
+		expect(menu[0]).not.toHaveProperty("meta");
+		expect(menu[1].meta).toEqual({ badge: "new" });
 	});
 });
