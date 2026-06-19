@@ -11,8 +11,8 @@ export interface MenuContainerProps {
 }
 
 /** Fields every rendered entry receives, collapsible or not. */
-interface MenuItemPropsBase {
-	item: MenuItem;
+interface MenuItemPropsBase<M = never> {
+	item: MenuItem<M>;
 	/** Nesting depth of this item: `0` at the top, `+1` per level down. */
 	level: number;
 }
@@ -23,7 +23,8 @@ interface MenuItemPropsBase {
  * present and **required**, alongside the already-rendered nested level as
  * `children`. The consumer still owns the link/icon/active state (its router).
  */
-export interface CollapsibleMenuItemProps extends MenuItemPropsBase {
+export interface CollapsibleMenuItemProps<M = never>
+	extends MenuItemPropsBase<M> {
 	collapsible: true;
 	/** This section's expanded state. */
 	open: boolean;
@@ -38,24 +39,26 @@ export interface CollapsibleMenuItemProps extends MenuItemPropsBase {
  * group header (`collapsible: false`, `children` present and always shown).
  * There is nothing to toggle, so `open`/`toggle` are absent from the type.
  */
-export interface StaticMenuItemProps extends MenuItemPropsBase {
+export interface StaticMenuItemProps<M = never> extends MenuItemPropsBase<M> {
 	collapsible: false;
 	/** The rendered nested level for an always-open group; absent for a leaf. */
 	children?: ReactNode;
 }
 
 /** Discriminated on `collapsible`: only the collapsible variant has `open`/`toggle`. */
-export type MenuItemProps = CollapsibleMenuItemProps | StaticMenuItemProps;
+export type MenuItemProps<M = never> =
+	| CollapsibleMenuItemProps<M>
+	| StaticMenuItemProps<M>;
 
 /** The consumer-supplied components the menu renders through. */
-export interface MenuComponents {
+export interface MenuComponents<M = never> {
 	Container: ComponentType<MenuContainerProps>;
-	Item: ComponentType<MenuItemProps>;
+	Item: ComponentType<MenuItemProps<M>>;
 }
 
-export interface MenuProps {
-	menu: MenuModel;
-	components: MenuComponents;
+export interface MenuProps<M = never> {
+	menu: MenuModel<M>;
+	components: MenuComponents<M>;
 }
 
 /**
@@ -74,19 +77,22 @@ export interface MenuProps {
  * sets `collapsible: false` (an always-open group). The `Item` is handed the
  * matching prop variant, so `open`/`toggle` only exist where they mean something.
  */
-export function Menu({ menu, components: { Container, Item } }: MenuProps) {
+export function Menu<M = never>({
+	menu,
+	components: { Container, Item },
+}: MenuProps<M>) {
 	// Disclosure state of collapsible sections, keyed by position path ("0.2.1").
 	// Kept above the tree so a section remembers its state even while collapsed.
 	const [openByPath, setOpenByPath] = useState<Record<string, boolean>>({});
 
-	const toggle = (path: string, item: MenuItem): void =>
+	const toggle = (path: string, item: MenuItem<M>): void =>
 		setOpenByPath((state) => ({
 			...state,
 			[path]: !(state[path] ?? item.defaultOpen ?? DEFAULT_OPEN),
 		}));
 
 	function renderLevel(
-		items: MenuModel,
+		items: MenuModel<M>,
 		parentPath: string,
 		level: number,
 	): ReactNode {

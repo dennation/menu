@@ -81,4 +81,23 @@ describe("defineMenu", () => {
 		});
 		expect(menu[0].items?.map((i) => i.href)).toEqual(["/button", "/x"]);
 	});
+
+	it("carries typed `meta` through and guarantees its presence on the output", () => {
+		interface Meta {
+			badge?: string;
+		}
+		const menu = defineMenu<Meta>({
+			"/components": { title: "Components" },
+			"/search": {
+				title: "Search",
+				parent: "/components",
+				meta: { badge: "new" },
+			},
+		});
+		const [section] = menu;
+		const child = section.items?.[0];
+		// `meta` is required on the output node, so no optional chaining on `.meta`.
+		expect(section.meta).toEqual({});
+		expect(child?.meta).toEqual({ badge: "new" });
+	});
 });

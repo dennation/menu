@@ -17,12 +17,14 @@ import type { MenuItemInput } from "../types";
  * })
  * ```
  */
-export interface RouteMenuMeta {
+export interface RouteMenuMeta<M = never> {
 	/** Display title. Falls back to a title-cased last path segment. */
 	title?: string;
 	/** Sort hint among siblings (lower first). */
 	order?: number;
 	icon?: ReactNode;
+	/** Opaque per-item metadata, carried onto the menu node verbatim. */
+	meta?: M;
 }
 
 declare module "@tanstack/router-core" {
@@ -31,14 +33,18 @@ declare module "@tanstack/router-core" {
 	}
 }
 
-export interface MenuFromRouteTreeOptions<TRouteTree extends AnyRoute> {
+export interface MenuFromRouteTreeOptions<
+	TRouteTree extends AnyRoute,
+	M = never,
+> {
 	/** Route full-paths to exclude (and their subtrees). Typed against the tree. */
 	omit?: RoutePaths<TRouteTree>[];
 	/**
 	 * Where per-route metadata lives. Default reads
-	 * `route.options.staticData?.menu?.meta`.
+	 * `route.options.staticData?.menu?.meta`. Returning a typed
+	 * {@link RouteMenuMeta} infers `M` for the generated input.
 	 */
-	getMeta?: (route: AnyRoute) => RouteMenuMeta | undefined;
+	getMeta?: (route: AnyRoute) => RouteMenuMeta<M> | undefined;
 }
 
 /**
@@ -47,8 +53,8 @@ export interface MenuFromRouteTreeOptions<TRouteTree extends AnyRoute> {
  * spread keeps keys in the type, `defineMenu` can type `parent` against these
  * paths through the spread — no phantom brand needed.
  */
-export type RouteMenuInput<TRouteTree extends AnyRoute> = Partial<
-	Record<RoutePaths<TRouteTree>, MenuItemInput<RoutePaths<TRouteTree>>>
+export type RouteMenuInput<TRouteTree extends AnyRoute, M = never> = Partial<
+	Record<RoutePaths<TRouteTree>, MenuItemInput<RoutePaths<TRouteTree>, M>>
 >;
 
 /**
@@ -74,13 +80,17 @@ export type RouteMenuInput<TRouteTree extends AnyRoute> = Partial<
  * - `title` resolves to `meta.title` ?? title-cased last segment; `order`/`icon`
  *   come from `meta`.
  */
-export function menuFromRouteTree<TRouteTree extends AnyRoute>(
+export function menuFromRouteTree<TRouteTree extends AnyRoute, M = never>(
 	routeTree: TRouteTree,
-	options: MenuFromRouteTreeOptions<TRouteTree> = {},
-): RouteMenuInput<TRouteTree> {
+	options: MenuFromRouteTreeOptions<TRouteTree, M> = {},
+): RouteMenuInput<TRouteTree, M> {
 	const omit = new Set<string>(options.omit ?? []);
-	const getMeta = options.getMeta ?? defaultGetMeta;
-	const entries: Record<string, MenuItemInput> = {};
+	// `getMeta` is typed at `M` for callers; the resolver itself works at
+	// `unknown` meta (it never inspects the value) and casts the result at the end.
+	const getMeta = (options.getMeta ?? defaultGetMeta) as (
+		route: AnyRoute,
+	) => RouteMenuMeta<unknown> | undefined;
+	const entries: Record<string, MenuItemInput<string, unknown>> = {};
 
 	const visit = (
 		route: AnyRoute,
@@ -105,20 +115,21 @@ export function menuFromRouteTree<TRouteTree extends AnyRoute>(
 	};
 
 	visit(routeTree, undefined, false);
-	return entries as RouteMenuInput<TRouteTree>;
+	return entries as unknown as RouteMenuInput<TRouteTree, M>;
 }
 
 /** Build the menu entry for a navigable route. */
 function toEntry(
 	fullPath: string,
 	parentHref: string | undefined,
-	meta: RouteMenuMeta | undefined,
-): MenuItemInput {
+	meta: RouteMenuMeta<unknown> | undefined,
+): MenuItemInput<string, unknown> {
 	return {
 		title: meta?.title ?? titleFromPath(fullPath),
 		...(parentHref != null && { parent: parentHref }),
 		...(meta?.order != null && { order: meta.order }),
 		...(meta?.icon != null && { icon: meta.icon }),
+		...(meta?.meta !== undefined && { meta: meta.meta }),
 	};
 }
 
