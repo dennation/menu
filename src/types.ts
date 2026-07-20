@@ -87,19 +87,21 @@ export type Menu<M = never> = MenuItem<M>[];
  * `Parent` is the union of sibling keys allowed for `parent`; {@link defineMenu}
  * infers it (`keyof` the input, including route paths from an adapter spread).
  */
-export type MenuItemInput<Parent extends string = string, M = never> =
-	MenuItemBase<M> &
-		MetaField<M> & {
-			/**
-			 * Link target. Defaults to the entry's key. Set `false` for a
-			 * non-navigable container whose key is just an id.
-			 */
-			href?: string | false;
-			/** Key of the parent entry. Absent → top level. */
-			parent?: Parent;
-			/** Sort hint among siblings (lower first). Stripped from the output. */
-			order?: number;
-		};
+export type MenuItemInput<
+	Parent extends string = string,
+	M = never,
+> = MenuItemBase<M> &
+	MetaField<M> & {
+		/**
+		 * Link target. Defaults to the entry's key. Set `false` for a
+		 * non-navigable container whose key is just an id.
+		 */
+		href?: string | false;
+		/** Key of the parent entry. Absent → top level. */
+		parent?: Parent;
+		/** Sort hint among siblings (lower first). Stripped from the output. */
+		order?: number;
+	};
 
 /** Input accepted by {@link defineMenu}: an object keyed by `href`/id. */
 export type MenuInput<M = never> = Record<string, MenuItemInput<string, M>>;
