@@ -32,14 +32,14 @@ import { Menu } from "@dennation/menu/react";
 
 ## API
 
-- **`defineMenu(input)`** — resolves a keyed `MenuInput` into a nested `Menu`. The input is an object keyed by identity (the entry's `href` by default, or an arbitrary id when `href: false`); hierarchy comes from `parent`, not nesting. Siblings sort by `order`, then insertion order. Items with an unknown `parent` are hoisted to the top level with a dev warning.
+- **`defineMenu(input)`** — resolves a keyed `MenuInput` into a nested `Menu`. The input is an object keyed by identity (the entry's `href` by default, or an arbitrary id when `href: false`); hierarchy comes from `parent`, not nesting. Siblings sort by `order`, then insertion order. Items with an unknown `parent` are hoisted to the top level with a dev warning; a `parent` cycle warns too.
 - **`<Menu menu components before after />`** (`/react`) — the renderer. Custom JSX goes in the `before`/`after` slots: `(item, { open, level }) => ReactNode`.
-- **`menuFromRouteTree(routeTree, options?)`** (`/tanstack-router`) — walks a TanStack route tree into a `MenuInput` keyed by `fullPath`. Pathless and layout routes are transparent; `omit` drops a route with its subtree. Per-route metadata is read from `staticData.menu.meta`:
+- **`menuFromRouteTree(routeTree, options?)`** (`/tanstack-router`) — walks a TanStack route tree into a `MenuInput` keyed by `fullPath`. Pathless and layout routes are transparent; `omit` drops a route with its subtree. How a route describes itself is read from `staticData.menu` (override the source with `getRouteMenu`):
 
   ```tsx
   createFileRoute("/button")({
   	component: ButtonPage,
-  	staticData: { menu: { meta: { title: "Button", order: 2 } } },
+  	staticData: { menu: { title: "Button", order: 2 } },
   });
   ```
 
