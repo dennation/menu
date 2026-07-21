@@ -1,9 +1,35 @@
 {
 	"name": "@dennation/menu",
-	"version": "0.1.0",
-	"description": "Router-agnostic navigation menu model, React renderer, and TanStack Router adapter",
+	"version": "0.0.0",
+	"description": "Headless, typesafe, router-agnostic navigation menu — a data model, a React renderer, and a useMenu hook.",
+	"keywords": [
+		"menu",
+		"navigation",
+		"nav",
+		"sidebar",
+		"breadcrumbs",
+		"tree",
+		"headless",
+		"typesafe",
+		"router-agnostic",
+		"react",
+		"react-hook",
+		"tanstack-router",
+		"typescript"
+	],
+	"homepage": "https://github.com/dennation/menu#readme",
+	"bugs": "https://github.com/dennation/menu/issues",
+	"license": "MIT",
+	"author": "Denis Goncharenko",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/dennation/menu.git"
+	},
 	"type": "module",
 	"sideEffects": false,
+	"publishConfig": {
+		"access": "public"
+	},
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",
@@ -25,7 +51,8 @@
 		"build": "vite build",
 		"dev": "vite build --watch",
 		"typecheck": "tsc --noEmit",
-		"test": "vitest run"
+		"test": "vitest run",
+		"prepublishOnly": "pnpm run build"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.3.14",
@@ -59,10 +86,5 @@
 			"optional": true
 		}
 	},
-	"packageManager": "pnpm@10.29.2+sha512.bef43fa759d91fd2da4b319a5a0d13ef7a45bb985a3d7342058470f9d2051a3ba8674e629672654686ef9443ad13a82da2beb9eeb3e0221c87b8154fff9d74b8",
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/dennation/menu.git"
-	},
-	"license": "MIT"
+	"packageManager": "pnpm@10.29.2+sha512.bef43fa759d91fd2da4b319a5a0d13ef7a45bb985a3d7342058470f9d2051a3ba8674e629672654686ef9443ad13a82da2beb9eeb3e0221c87b8154fff9d74b8"
 }

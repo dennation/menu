@@ -1,6 +1,6 @@
 # @dennation/menu
 
-Headless, router-agnostic navigation menu — you own every element and style; it owns the tree, the disclosure state, and the active branch. A data model (`defineMenu`), a React renderer (`<Menu>`), and a `useMenu` hook.
+Headless, typesafe, router-agnostic navigation menu — you own every element and style; it owns the tree, the disclosure state, and the active branch. A data model (`defineMenu`), a React renderer (`<Menu>`), and a `useMenu` hook.
 
 `<Menu>` renders none of its own markup: it drives recursion and state, you supply the `renderItem` component and the shell. It gives you a11y primitives (a stable `id` for `aria-controls`/`aria-expanded`), but keyboard/focus handling is yours.
 
