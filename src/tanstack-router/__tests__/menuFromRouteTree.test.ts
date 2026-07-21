@@ -16,7 +16,7 @@ function buildTree() {
 	const button = createRoute({
 		getParentRoute: () => root,
 		path: "button",
-		staticData: { menu: { meta: { title: "Button", order: 1 } } },
+		staticData: { menu: { title: "Button", order: 1 } },
 	});
 	// Section: a route with a path AND children.
 	const components = createRoute({
@@ -89,9 +89,9 @@ describe("menuFromRouteTree", () => {
 		]);
 	});
 
-	it("honors a custom getMeta", () => {
+	it("honors a custom getRouteMenu", () => {
 		const input = menuFromRouteTree(buildTree(), {
-			getMeta: (route) =>
+			getRouteMenu: (route) =>
 				route.fullPath === "/about"
 					? { title: "Custom About", order: 0 }
 					: undefined,
