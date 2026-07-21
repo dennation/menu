@@ -5,7 +5,19 @@ import {
 } from "@tanstack/react-router";
 import { describe, expect, it } from "vitest";
 import { defineMenu } from "../../../defineMenu";
-import { menuInputFromRouteTree } from "../index";
+import { menuInputFromRouteTree, type RouteMenuEntry } from "../index";
+
+interface Meta {
+	badge?: string;
+}
+
+// The consumer registers `menu` on staticData under their own meta type — this
+// is what types `staticData: { menu: { … } }` at each route.
+declare module "@tanstack/router-core" {
+	interface StaticDataRouteOption {
+		menu?: RouteMenuEntry<Meta>;
+	}
+}
 
 /** Build an initialized route tree (router init populates `fullPath`). */
 function buildTree() {
@@ -16,7 +28,8 @@ function buildTree() {
 	const button = createRoute({
 		getParentRoute: () => root,
 		path: "button",
-		staticData: { menu: { title: "Button", order: 1 } },
+		// `meta` is typed as `Meta` here thanks to the augmentation above.
+		staticData: { menu: { title: "Button", order: 1, meta: { badge: "new" } } },
 	});
 	// Section: a route with a path AND children.
 	const components = createRoute({
@@ -60,6 +73,16 @@ describe("menuInputFromRouteTree", () => {
 		const input = menuInputFromRouteTree(buildTree());
 		expect(input["/button"]).toMatchObject({ title: "Button", order: 1 });
 		expect(input["/about"]?.title).toBe("About");
+	});
+
+	it("infers meta end-to-end from the register — no explicit type argument", () => {
+		// `M` flows from the registered StaticDataRouteOption through
+		// menuInputFromRouteTree into defineMenu — the menu is typed `Menu<Meta>`.
+		const menu = defineMenu(menuInputFromRouteTree(buildTree()));
+		const button = menu.find((i) => i.href === "/button");
+		// Typed as `Meta` (string | undefined), not `never`/`unknown`.
+		const badge: string | undefined = button?.meta?.badge;
+		expect(badge).toBe("new");
 	});
 
 	it("`omit`s a route together with its subtree", () => {

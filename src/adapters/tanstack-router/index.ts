@@ -1,19 +1,28 @@
 import type { AnyRoute } from "@tanstack/react-router";
-import type { RoutePaths } from "@tanstack/router-core";
-import type { ReactNode } from "react";
+import type { RoutePaths, StaticDataRouteOption } from "@tanstack/router-core";
 import type { MenuItemInput } from "../../types";
 
 /**
- * How a route describes itself in a menu, read by the adapter's default
- * `getRouteMenu` from `route.options.staticData.menu`. Composition decisions
- * (excluding, overriding, re-parenting) belong to the authoring layer — `omit`
- * here, keyed override and `parent` in `defineMenu`.
+ * The meta type registered on `staticData.menu` (see {@link RouteMenuEntry}), or
+ * `unknown` if not registered. Used as the default `M`, so `menuInputFromRouteTree`
+ * picks up your meta without an explicit type argument.
+ */
+export type RegisteredMeta = StaticDataRouteOption extends {
+	menu?: RouteMenuEntry<infer M>;
+}
+	? M
+	: unknown;
+
+/**
+ * How a route describes itself in a menu. Register it on `staticData` in your
+ * app to type `staticData.menu` (including its `meta`) at the route:
  *
  * ```tsx
- * createFileRoute('/button')({
- *   component: ButtonPage,
- *   staticData: { menu: { title: 'Button', order: 1 } },
- * })
+ * declare module "@tanstack/router-core" {
+ *   interface StaticDataRouteOption {
+ *     menu?: RouteMenuEntry<MyMeta>;
+ *   }
+ * }
  * ```
  */
 export interface RouteMenuEntry<M = never> {
@@ -21,17 +30,8 @@ export interface RouteMenuEntry<M = never> {
 	title?: string;
 	/** Sort hint among siblings (lower first). */
 	order?: number;
-	icon?: ReactNode;
 	/** Opaque per-item metadata, carried onto the menu node verbatim. */
 	meta?: M;
-}
-
-declare module "@tanstack/router-core" {
-	interface StaticDataRouteOption {
-		// `unknown` meta: a module augmentation can't be generic, so the concrete
-		// meta type is applied at the `menuInputFromRouteTree<Tree, M>` call site.
-		menu?: RouteMenuEntry<unknown>;
-	}
 }
 
 export interface MenuInputFromRouteTreeOptions<
@@ -54,22 +54,14 @@ export type RouteMenuInput<TRouteTree extends AnyRoute, M = never> = Partial<
 >;
 
 /**
- * Build a keyed menu input from a TanStack Router route tree. Each entry is
- * keyed by `fullPath`, with `parent` pointing at the nearest navigable ancestor;
- * spread the result into `defineMenu` to resolve it into a tree:
- *
- * ```tsx
- * const menu = defineMenu({
- *   ...menuInputFromRouteTree(routeTree, { omit: ['/about'] }),
- *   '/changelog': { title: 'Changelog', parent: '/components' },
- *   '/button': { title: 'Button', icon: <Cube /> }, // overrides the generated one
- * })
- * ```
- *
- * The root and pathless/layout routes are transparent — their children attach to
- * the nearest navigable ancestor. Routes in `omit` are dropped with their subtree.
+ * Build a keyed menu input from a TanStack Router route tree, keyed by `fullPath`
+ * with `parent` at the nearest navigable ancestor; spread into `defineMenu`.
+ * Pathless/layout routes are transparent; `omit` drops a route with its subtree.
  */
-export function menuInputFromRouteTree<TRouteTree extends AnyRoute, M = never>(
+export function menuInputFromRouteTree<
+	TRouteTree extends AnyRoute,
+	M = RegisteredMeta,
+>(
 	routeTree: TRouteTree,
 	options: MenuInputFromRouteTreeOptions<TRouteTree, M> = {},
 ): RouteMenuInput<TRouteTree, M> {
@@ -107,7 +99,6 @@ function toEntry(
 		title: route?.title ?? titleFromPath(fullPath),
 		...(parentKey != null && { parent: parentKey }),
 		...(route?.order != null && { order: route.order }),
-		...(route?.icon != null && { icon: route.icon }),
 		...(route?.meta !== undefined && { meta: route.meta }),
 	};
 }
@@ -130,7 +121,12 @@ function childrenOf(route: AnyRoute): AnyRoute[] {
 function defaultGetRouteMenu(
 	route: AnyRoute,
 ): RouteMenuEntry<unknown> | undefined {
-	return route.options?.staticData?.menu;
+	// The adapter doesn't augment `StaticDataRouteOption` (that's the consumer's,
+	// so they can type `menu`/`meta`); read it through a local cast.
+	const staticData = route.options?.staticData as
+		| { menu?: RouteMenuEntry<unknown> }
+		| undefined;
+	return staticData?.menu;
 }
 
 /** Title-case the last non-empty segment (`/user-settings` → `User Settings`). */
