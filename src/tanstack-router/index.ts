@@ -29,12 +29,12 @@ export interface RouteMenuEntry<M = never> {
 declare module "@tanstack/router-core" {
 	interface StaticDataRouteOption {
 		// `unknown` meta: a module augmentation can't be generic, so the concrete
-		// meta type is applied at the `menuFromRouteTree<Tree, M>` call site.
+		// meta type is applied at the `menuInputFromRouteTree<Tree, M>` call site.
 		menu?: RouteMenuEntry<unknown>;
 	}
 }
 
-export interface MenuFromRouteTreeOptions<
+export interface MenuInputFromRouteTreeOptions<
 	TRouteTree extends AnyRoute,
 	M = never,
 > {
@@ -60,7 +60,7 @@ export type RouteMenuInput<TRouteTree extends AnyRoute, M = never> = Partial<
  *
  * ```tsx
  * const menu = defineMenu({
- *   ...menuFromRouteTree(routeTree, { omit: ['/about'] }),
+ *   ...menuInputFromRouteTree(routeTree, { omit: ['/about'] }),
  *   '/changelog': { title: 'Changelog', parent: '/components' },
  *   '/button': { title: 'Button', icon: <Cube /> }, // overrides the generated one
  * })
@@ -69,9 +69,9 @@ export type RouteMenuInput<TRouteTree extends AnyRoute, M = never> = Partial<
  * The root and pathless/layout routes are transparent — their children attach to
  * the nearest navigable ancestor. Routes in `omit` are dropped with their subtree.
  */
-export function menuFromRouteTree<TRouteTree extends AnyRoute, M = never>(
+export function menuInputFromRouteTree<TRouteTree extends AnyRoute, M = never>(
 	routeTree: TRouteTree,
-	options: MenuFromRouteTreeOptions<TRouteTree, M> = {},
+	options: MenuInputFromRouteTreeOptions<TRouteTree, M> = {},
 ): RouteMenuInput<TRouteTree, M> {
 	const omit = new Set<string>(options.omit ?? []);
 	// Typed at `M` for callers; the resolver itself never inspects `meta`, so it

@@ -1,6 +1,6 @@
 # @dennation/menu
 
-Router-agnostic navigation menu: a data model (`defineMenu`), a React renderer (`<Menu>`), and a TanStack Router adapter (`menuFromRouteTree`).
+Router-agnostic navigation menu: a data model (`defineMenu`), a React renderer (`<Menu>`), and a TanStack Router adapter (`menuInputFromRouteTree`).
 
 ```bash
 pnpm add @dennation/menu
@@ -10,11 +10,11 @@ pnpm add @dennation/menu
 
 ```tsx
 import { defineMenu } from "@dennation/menu";
-import { menuFromRouteTree } from "@dennation/menu/tanstack-router";
+import { menuInputFromRouteTree } from "@dennation/menu/tanstack-router";
 import { routeTree } from "./route-tree.gen";
 
 const menu = defineMenu({
-	...menuFromRouteTree(routeTree, { omit: ["/about"] }),
+	...menuInputFromRouteTree(routeTree, { omit: ["/about"] }),
 	// add a custom child into a generated section — `parent` is type-checked against the routes
 	"/changelog": { title: "Changelog", parent: "/components" },
 	"/button": { title: "Button", icon: <Cube /> }, // overrides the generated entry
@@ -34,7 +34,7 @@ import { Menu } from "@dennation/menu/react";
 
 - **`defineMenu(input)`** — resolves a keyed `MenuInput` into a nested `Menu`. The input is an object keyed by identity (the entry's `href` by default, or an arbitrary id when `href: false`); hierarchy comes from `parent`, not nesting. Siblings sort by `order`, then insertion order. Items with an unknown `parent` are hoisted to the top level with a dev warning; a `parent` cycle warns too. Each output `MenuItem` carries its input key as a stable `id` — use it for React keys, `aria-controls`, or matching a node back to your data.
 - **`<Menu menu components before after />`** (`/react`) — the renderer. Custom JSX goes in the `before`/`after` slots: `(item, { open, level }) => ReactNode`.
-- **`menuFromRouteTree(routeTree, options?)`** (`/tanstack-router`) — walks a TanStack route tree into a `MenuInput` keyed by `fullPath`. Pathless and layout routes are transparent; `omit` drops a route with its subtree. How a route describes itself is read from `staticData.menu` (override the source with `getRouteMenu`):
+- **`menuInputFromRouteTree(routeTree, options?)`** (`/tanstack-router`) — walks a TanStack route tree into a `MenuInput` keyed by `fullPath`. Pathless and layout routes are transparent; `omit` drops a route with its subtree. How a route describes itself is read from `staticData.menu` (override the source with `getRouteMenu`):
 
   ```tsx
   createFileRoute("/button")({
