@@ -39,6 +39,16 @@ describe("defineMenu", () => {
 		expect(menu[0].items?.map((i) => i.href)).toEqual(["/button"]);
 	});
 
+	it("sorts by `order` at nested levels too, not just the top", () => {
+		// The single stable sort must order children, not only root siblings.
+		const menu = defineMenu({
+			"/s": { title: "S" },
+			"/s/b": { title: "B", parent: "/s", order: 2 },
+			"/s/a": { title: "A", parent: "/s", order: 1 },
+		});
+		expect(menu[0].items?.map((i) => i.title)).toEqual(["A", "B"]);
+	});
+
 	it("supports a non-navigable container via `href: false`, addressed by its key", () => {
 		const menu = defineMenu({
 			grp: { title: "Group", href: false },
@@ -87,10 +97,13 @@ describe("defineMenu", () => {
 		};
 		const menu = defineMenu({
 			...generated,
-			"/button": { title: "Button (override)", icon: "icon" },
+			"/button": { title: "Button (override)", defaultOpen: false },
 		});
 		expect(menu.map((i) => i.href)).toEqual(["/button", "/about"]);
-		expect(menu[0]).toMatchObject({ title: "Button (override)", icon: "icon" });
+		expect(menu[0]).toMatchObject({
+			title: "Button (override)",
+			defaultOpen: false,
+		});
 	});
 
 	it("lets a later entry attach into an earlier section (custom child)", () => {
@@ -102,33 +115,36 @@ describe("defineMenu", () => {
 		expect(menu[0].items?.map((i) => i.href)).toEqual(["/button", "/x"]);
 	});
 
-	it("carries typed `meta` through verbatim (required when the type is plain)", () => {
+	it("carries typed `meta` through verbatim, inferring the type from the input", () => {
 		interface Meta {
 			badge: string;
 		}
-		const menu = defineMenu<Meta>({
-			"/components": { title: "Components", meta: { badge: "section" } },
+		const menu = defineMenu({
+			"/components": {
+				title: "Components",
+				meta: { badge: "section" } as Meta,
+			},
 			"/search": {
 				title: "Search",
 				parent: "/components",
-				meta: { badge: "new" },
+				meta: { badge: "new" } as Meta,
 			},
 		});
 		const [section] = menu;
-		// `meta` is required, so no optional chaining on `.meta` on the output.
+		// `meta` inferred as `Meta`, required — no optional chaining on `.meta`.
 		expect(section.meta.badge).toBe("section");
 		expect(section.items?.[0].meta.badge).toBe("new");
 	});
 
-	it("makes `meta` optional (and omittable) when the type admits undefined", () => {
+	it("infers an optional `meta` type; omitted values just aren't present", () => {
 		interface Meta {
 			badge?: string;
 		}
-		const menu = defineMenu<Meta | undefined>({
-			"/a": { title: "A" }, // meta omitted — allowed
-			"/b": { title: "B", meta: { badge: "new" } },
+		const menu = defineMenu({
+			"/a": { title: "A", meta: {} as Meta }, // meta type given, value empty
+			"/b": { title: "B", meta: { badge: "new" } as Meta },
 		});
-		expect(menu[0]).not.toHaveProperty("meta");
-		expect(menu[1].meta).toEqual({ badge: "new" });
+		expect(menu[0].meta?.badge).toBeUndefined();
+		expect(menu[1].meta?.badge).toBe("new");
 	});
 });

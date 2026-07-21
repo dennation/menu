@@ -1,9 +1,8 @@
 export { defineMenu } from "./defineMenu";
-export type {
-	Menu,
-	MenuInput,
-	MenuItem,
-	MenuItemInput,
-	MenuItemState,
-	MenuSlot,
-} from "./types";
+export { findMenuItem, findMenuItemBy } from "./findMenuItem";
+export {
+	getMenuTrail,
+	getMenuTrailBy,
+	type MenuItemPredicate,
+} from "./getMenuTrail";
+export type { Menu, MenuInput, MenuItem, MenuItemInput } from "./types";
