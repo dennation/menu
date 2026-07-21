@@ -1,19 +1,3 @@
-import type { ReactNode } from "react";
-
-/** State of the item a {@link MenuSlot} is rendering next to. */
-export interface MenuItemState {
-	/** The item's nested `items` are expanded. */
-	open: boolean;
-	/** Nesting depth: `0` at the top, `+1` per level down. */
-	level: number;
-}
-
-/** Render custom JSX before/after a menu item (e.g. a divider or section heading). */
-export type MenuSlot<M = never> = (
-	item: MenuItem<M>,
-	state: MenuItemState,
-) => ReactNode;
-
 /**
  * The opaque per-item metadata field, used **identically** on input and output.
  * `[M]` wrappers stop the conditional distributing over a union.
@@ -29,16 +13,9 @@ type MetaField<M> = [M] extends [never]
 		? { meta?: M }
 		: { meta: M };
 
-/**
- * Fields shared by the stored {@link MenuItem} and the input {@link MenuItemInput}.
- *
- * There is deliberately no `match`/`active`: the renderer is router-agnostic, so
- * active-state matching lives in the consumer's `Item`, which talks to its own
- * router.
- */
+/** Fields shared by the stored {@link MenuItem} and input {@link MenuItemInput}. */
 export interface MenuItemBase<M = never> {
 	title: string;
-	icon?: ReactNode;
 	/** Initial expanded state when the item has children. Default `true`. */
 	defaultOpen?: boolean;
 	/**
@@ -47,10 +24,6 @@ export interface MenuItemBase<M = never> {
 	 * gets the non-collapsible prop variant. Ignored for leaf links.
 	 */
 	collapsible?: boolean;
-	/** Custom JSX rendered before the item. */
-	before?: MenuSlot<M>;
-	/** Custom JSX rendered after the item. */
-	after?: MenuSlot<M>;
 }
 
 /**
@@ -59,11 +32,7 @@ export interface MenuItemBase<M = never> {
  */
 export type MenuItem<M = never> = MenuItemBase<M> &
 	MetaField<M> & {
-		/**
-		 * Stable identity — the input key it was defined under (its `href`, an
-		 * adapter's route `fullPath`, or a container id). Unique across the tree;
-		 * use it for React keys, `aria-controls`, or matching back to your data.
-		 */
+		/** Stable identity — the input key (unique across the tree). */
 		id: string;
 		/** Link target — internal route or external URL. Absent → pure container. */
 		href?: string;
@@ -75,13 +44,9 @@ export type MenuItem<M = never> = MenuItemBase<M> &
 export type Menu<M = never> = MenuItem<M>[];
 
 /**
- * Authoring/adapter input entry. The input is **keyed by identity** (the item's
- * `href`, or an arbitrary id for a pure container) and hierarchy comes from
- * `parent`, not nesting — so a keyed override is plain object spread and
- * `parent` can be type-checked via `keyof`.
- *
- * `Parent` is the union of keys allowed for `parent`; {@link defineMenu} infers
- * it from the input, including route paths spread in from an adapter.
+ * Authoring/adapter input entry, keyed by identity. Hierarchy comes from
+ * `parent` (a key), not nesting. `Parent` — the union of allowed parent keys,
+ * inferred by {@link defineMenu} from the input.
  */
 export type MenuItemInput<
 	Parent extends string = string,

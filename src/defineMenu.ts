@@ -14,6 +14,22 @@ const UNORDERED = Number.MAX_SAFE_INTEGER;
 type MenuKeys<T> = Extract<keyof T, string>;
 
 /**
+ * The input `defineMenu` accepts, expressed against itself so `parent` is checked
+ * against the object's own keys ({@link MenuKeys}). `meta` is left `unknown` here
+ * and its real type is inferred separately by {@link MetaOf}.
+ */
+type DefineMenuInput<T> = Record<
+	string,
+	MenuItemInput<MenuKeys<T>, unknown> | undefined
+>;
+
+/**
+ * The per-item `meta` type inferred from a menu input — the `meta` field of its
+ * values (`NonNullable` drops the `Partial`/`undefined` from adapter results).
+ */
+type MetaOf<T> = NonNullable<T[keyof T]> extends { meta?: infer M } ? M : never;
+
+/**
  * Meta-opaque views for the internal pipeline: the runtime never inspects `meta`
  * (it just rides through), so the resolver works at `unknown` meta and the
  * result is cast back to `Menu<M>`.
@@ -27,17 +43,14 @@ type LooseNode = MenuItem<unknown>;
  * equals), the input-only `parent`/`order` are stripped, and `href` falls back
  * to the entry key. An unknown `parent` hoists the entry to the top level.
  *
- * `M` types the opaque per-item `meta`. It comes first so it can be given
- * explicitly (`defineMenu<MyMeta>(…)`) while `T` is still inferred from the
- * argument; it passes through verbatim and is never read here.
+ * The per-item `meta` type is **inferred** from the input's `meta` fields (see
+ * {@link MetaOf}), so `defineMenu(menuInputFromRouteTree(tree))` yields the menu
+ * typed with your registered meta — no explicit type argument. `meta` passes
+ * through verbatim and is never read here.
  */
-export function defineMenu<
-	M = never,
-	const T extends Record<
-		string,
-		MenuItemInput<MenuKeys<T>, M> | undefined
-	> = Record<string, MenuItemInput<string, M>>,
->(input: T): Menu<M> {
+export function defineMenu<const T extends DefineMenuInput<T>>(
+	input: T,
+): Menu<MetaOf<T>> {
 	// One stable sort over the flat list. `Array#sort` is stable, so every
 	// parent's bucket comes out ordered without a second per-level pass.
 	const entries = Object.entries(
@@ -46,25 +59,33 @@ export function defineMenu<
 		.filter((entry): entry is [string, LooseInput] => entry[1] != null)
 		.sort(([, a], [, b]) => (a.order ?? UNORDERED) - (b.order ?? UNORDERED));
 
-	const nodeByKey = new Map(
-		entries.map(([key, item]) => [key, toNode(key, item)]),
-	);
+	// Build every node up front; `nodeByKey` is only for resolving `parent`.
+	const placed = entries.map(([key, item]) => ({
+		key,
+		item,
+		node: toNode(key, item),
+	}));
+	const nodeByKey = new Map(placed.map(({ key, node }) => [key, node]));
 	const roots: LooseNode[] = [];
 
-	for (const [key, item] of entries) {
-		const node = nodeByKey.get(key) as LooseNode;
+	for (const { item, node } of placed) {
 		const parent = item.parent == null ? undefined : nodeByKey.get(item.parent);
 		if (parent) {
 			parent.items ??= [];
 			parent.items.push(node);
 		} else {
-			if (item.parent != null) warnUnknownParent(item);
+			if (isDev && item.parent != null) warnUnknownParent(item);
 			roots.push(node);
 		}
 	}
 
-	if (isDev) warnUnreachable(roots, entries.length);
-	return roots as unknown as Menu<M>;
+	// A `parent` cycle links its nodes to each other but off the tree.
+	if (isDev && countNodes(roots) !== entries.length)
+		console.warn(
+			"[menu] cyclic `parent` detected; the cycle's items were dropped",
+		);
+
+	return roots as unknown as Menu<MetaOf<T>>;
 }
 
 /** Build the output node: strip the input-only fields and resolve `href`. */
@@ -73,22 +94,17 @@ function toNode(
 	{ href, parent, order, ...fields }: LooseInput,
 ): LooseNode {
 	// `meta`, when present, rides through in `...fields` untouched.
-	const target = href === false ? undefined : (href ?? key);
-	return { id: key, ...fields, ...(target != null && { href: target }) };
+	const resolvedHref = href === false ? undefined : (href ?? key);
+	return {
+		id: key,
+		...fields,
+		...(resolvedHref != null && { href: resolvedHref }),
+	};
 }
 
 function warnUnknownParent({ title, parent }: LooseInput): void {
-	if (!isDev) return;
 	console.warn(
 		`[menu] item "${title}" has unknown parent "${parent}"; hoisting to top level`,
-	);
-}
-
-/** A cyclic `parent` chain links nodes to each other but off the tree. */
-function warnUnreachable(roots: LooseNode[], total: number): void {
-	if (countNodes(roots) === total) return;
-	console.warn(
-		"[menu] cyclic `parent` detected; the items in the cycle were dropped",
 	);
 }
 
