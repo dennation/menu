@@ -1,7 +1,7 @@
 import type { AnyRoute } from "@tanstack/react-router";
 import type { RoutePaths } from "@tanstack/router-core";
 import type { ReactNode } from "react";
-import type { MenuItemInput } from "../types";
+import type { MenuItemInput } from "../../types";
 
 /**
  * How a route describes itself in a menu, read by the adapter's default

@@ -4,7 +4,7 @@ import {
 	createRouter,
 } from "@tanstack/react-router";
 import { describe, expect, it } from "vitest";
-import { defineMenu } from "../../defineMenu";
+import { defineMenu } from "../../../defineMenu";
 import { menuInputFromRouteTree } from "../index";
 
 /** Build an initialized route tree (router init populates `fullPath`). */
