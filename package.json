@@ -53,8 +53,6 @@
 		"typecheck": "tsc --noEmit",
 		"test": "vitest run",
 		"prepublishOnly": "pnpm run build",
-		"changeset": "changeset",
-		"version": "changeset version",
 		"release": "changeset publish"
 	},
 	"devDependencies": {
