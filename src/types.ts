@@ -59,6 +59,12 @@ export interface MenuItemBase<M = never> {
  */
 export type MenuItem<M = never> = MenuItemBase<M> &
 	MetaField<M> & {
+		/**
+		 * Stable identity — the input key it was defined under (its `href`, an
+		 * adapter's route `fullPath`, or a container id). Unique across the tree;
+		 * use it for React keys, `aria-controls`, or matching back to your data.
+		 */
+		id: string;
 		/** Link target — internal route or external URL. Absent → pure container. */
 		href?: string;
 		/** Child entries → renders as a section. */

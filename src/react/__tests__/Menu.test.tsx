@@ -27,9 +27,10 @@ const components: MenuComponents = {
 
 const section = (extra?: Partial<MenuItem>): MenuModel => [
 	{
+		id: "/components",
 		title: "Components",
 		href: "/components",
-		items: [{ title: "Button", href: "/button" }],
+		items: [{ id: "/button", title: "Button", href: "/button" }],
 		...extra,
 	},
 ];
@@ -50,6 +51,29 @@ describe("<Menu>", () => {
 		expect(header().dataset.open).toBe("false");
 		fireEvent.click(header());
 		expect(header().dataset.open).toBe("true");
+	});
+
+	it("keeps disclosure state on the item when siblings reorder", () => {
+		const a = {
+			id: "/a",
+			title: "A",
+			href: "/a",
+			items: [{ id: "/a1", title: "A1", href: "/a1" }],
+		};
+		const b = {
+			id: "/b",
+			title: "B",
+			href: "/b",
+			items: [{ id: "/b1", title: "B1", href: "/b1" }],
+		};
+		const { rerender } = render(<Menu menu={[a, b]} components={components} />);
+
+		// Collapse B, then swap the order: B must stay collapsed, A untouched.
+		fireEvent.click(screen.getByText("B"));
+		expect(screen.getByText("B").dataset.open).toBe("false");
+		rerender(<Menu menu={[b, a]} components={components} />);
+		expect(screen.getByText("B").dataset.open).toBe("false");
+		expect(screen.getByText("A").dataset.open).toBe("true");
 	});
 
 	it("honours `defaultOpen: false`", () => {
