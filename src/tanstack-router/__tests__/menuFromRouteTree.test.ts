@@ -74,6 +74,9 @@ describe("menuFromRouteTree", () => {
 		expect(components?.items?.map((i) => i.href)).toEqual([
 			"/components/badge",
 		]);
+		// `id` falls out of the route `fullPath` key.
+		expect(components?.id).toBe("/components");
+		expect(components?.items?.[0].id).toBe("/components/badge");
 		expect(menu.find((i) => i.href === "/_layout")).toBeUndefined();
 	});
 

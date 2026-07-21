@@ -76,36 +76,32 @@ export function Menu<M = never>({
 	menu,
 	components: { Container, Item },
 }: MenuProps<M>) {
-	// Disclosure state of collapsible sections, keyed by position path ("0.2.1").
-	// Kept above the tree so a section remembers its state while collapsed.
-	const [openByPath, setOpenByPath] = useState<Record<string, boolean>>({});
+	// Disclosure state of collapsible sections, keyed by the item's stable `id`.
+	// Kept above the tree so a section remembers its state while collapsed, and
+	// survives reordering/filtering (a position path would not).
+	const [openById, setOpenById] = useState<Record<string, boolean>>({});
 
-	const isOpen = (path: string, item: MenuItem<M>): boolean =>
-		openByPath[path] ?? item.defaultOpen ?? DEFAULT_OPEN;
+	const isOpen = (item: MenuItem<M>): boolean =>
+		openById[item.id] ?? item.defaultOpen ?? DEFAULT_OPEN;
 
-	const toggle = (path: string, item: MenuItem<M>): void =>
-		setOpenByPath((state) => ({ ...state, [path]: !isOpen(path, item) }));
+	const toggle = (item: MenuItem<M>): void =>
+		setOpenById((state) => ({ ...state, [item.id]: !isOpen(item) }));
 
-	function renderLevel(
-		items: MenuModel<M>,
-		parentPath: string,
-		level: number,
-	): ReactNode {
-		return items.map((item, index) => {
-			const path = parentPath === "" ? String(index) : `${parentPath}.${index}`;
+	function renderLevel(items: MenuModel<M>, level: number): ReactNode {
+		return items.map((item) => {
 			const childItems = item.items ?? [];
 			const hasChildren = childItems.length > 0;
 			const isCollapsible = hasChildren && item.collapsible !== false;
 			const children = hasChildren
-				? renderLevel(childItems, path, level + 1)
+				? renderLevel(childItems, level + 1)
 				: undefined;
 			// A collapsible section follows its toggle; a static group is always
 			// open; a leaf has nothing to open.
-			const open = isCollapsible ? isOpen(path, item) : hasChildren;
+			const open = isCollapsible ? isOpen(item) : hasChildren;
 			const slotState: MenuItemState = { open, level };
 
 			return (
-				<Fragment key={path}>
+				<Fragment key={item.id}>
 					{item.before?.(item, slotState)}
 					{isCollapsible ? (
 						<Item
@@ -113,7 +109,7 @@ export function Menu<M = never>({
 							item={item}
 							level={level}
 							open={open}
-							toggle={() => toggle(path, item)}
+							toggle={() => toggle(item)}
 						>
 							{children}
 						</Item>
@@ -128,5 +124,5 @@ export function Menu<M = never>({
 		});
 	}
 
-	return <Container>{renderLevel(menu, "", 0)}</Container>;
+	return <Container>{renderLevel(menu, 0)}</Container>;
 }

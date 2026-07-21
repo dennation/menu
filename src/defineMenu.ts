@@ -74,7 +74,7 @@ function toNode(
 ): LooseNode {
 	// `meta`, when present, rides through in `...fields` untouched.
 	const target = href === false ? undefined : (href ?? key);
-	return { ...fields, ...(target != null && { href: target }) };
+	return { id: key, ...fields, ...(target != null && { href: target }) };
 }
 
 function warnUnknownParent({ title, parent }: LooseInput): void {
