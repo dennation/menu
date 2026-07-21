@@ -3,7 +3,6 @@ export type {
 	Menu,
 	MenuInput,
 	MenuItem,
-	MenuItemBase,
 	MenuItemInput,
 	MenuItemState,
 	MenuSlot,

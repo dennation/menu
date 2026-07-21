@@ -1,10 +1,10 @@
 import type { ReactNode } from "react";
 
-/** State passed to a {@link MenuSlot} for the item being rendered. */
+/** State of the item a {@link MenuSlot} is rendering next to. */
 export interface MenuItemState {
 	/** The item's nested `items` are expanded. */
 	open: boolean;
-	/** Nesting depth of the item: `0` at the top, `+1` per level down. */
+	/** Nesting depth: `0` at the top, `+1` per level down. */
 	level: number;
 }
 
@@ -15,15 +15,13 @@ export type MenuSlot<M = never> = (
 ) => ReactNode;
 
 /**
- * The opaque per-item metadata field, derived from the meta type `M` — used
- * **identically** on input and output (whatever `M` you give is what you get,
- * everywhere). `[M]` wrappers stop the conditional distributing over a union.
+ * The opaque per-item metadata field, used **identically** on input and output.
+ * `[M]` wrappers stop the conditional distributing over a union.
  *
- * - `M = never` (no meta type given, the default): no usable `meta` (`undefined`).
- * - `undefined` is assignable to `M` (e.g. `Foo | undefined`): `meta` is
- *   **optional** — that's how a consumer opts into omittable meta.
- * - otherwise: `meta` is **required** and typed `M`, so the consumer's `Item`
- *   reads `item.meta.x` with no optional chaining.
+ * - `M = never` (the default): no usable `meta`.
+ * - `undefined` assignable to `M` (`Foo | undefined`): `meta` is optional.
+ * - otherwise: `meta` is required and typed `M`, so the consumer's `Item` reads
+ *   `item.meta.x` with no optional chaining.
  */
 type MetaField<M> = [M] extends [never]
 	? { meta?: undefined }
@@ -32,12 +30,11 @@ type MetaField<M> = [M] extends [never]
 		: { meta: M };
 
 /**
- * Fields shared by the stored {@link MenuItem} and the input {@link MenuItemInput}
- * — everything except `meta` (added via {@link MetaField} on each).
+ * Fields shared by the stored {@link MenuItem} and the input {@link MenuItemInput}.
  *
- * Note there is no `match`/`active`: the `<Menu>` renderer is router-agnostic and
- * knows nothing about the active path. Active-state matching lives entirely in the
- * consumer's `Item` component, which talks to its own router.
+ * There is deliberately no `match`/`active`: the renderer is router-agnostic, so
+ * active-state matching lives in the consumer's `Item`, which talks to its own
+ * router.
  */
 export interface MenuItemBase<M = never> {
 	title: string;
@@ -46,9 +43,8 @@ export interface MenuItemBase<M = never> {
 	defaultOpen?: boolean;
 	/**
 	 * Whether a section (an item with children) can be collapsed. Default `true`.
-	 * Set `false` for an always-open group header: `<Menu>` keeps it expanded and
-	 * hands its `Item` the non-collapsible prop variant (no `open`/`toggle`).
-	 * Ignored for leaf links (nothing to collapse).
+	 * `false` makes an always-open group header: it stays expanded and its `Item`
+	 * gets the non-collapsible prop variant. Ignored for leaf links.
 	 */
 	collapsible?: boolean;
 	/** Custom JSX rendered before the item. */
@@ -58,34 +54,28 @@ export interface MenuItemBase<M = never> {
 }
 
 /**
- * A single, normalized navigation entry — the renderer's model. A node with
- * `items` is a (collapsible) section, one with `href` is a link, both → a
- * clickable section. Built by {@link defineMenu} from the keyed {@link MenuInput}.
- *
- * `meta` is the same type as on the input (see {@link MetaField}): required when
- * `M` is a plain type, optional when `M` admits `undefined`.
+ * A normalized navigation entry. With `items` it's a section, with `href` a
+ * link, with both a clickable section.
  */
 export type MenuItem<M = never> = MenuItemBase<M> &
 	MetaField<M> & {
 		/** Link target — internal route or external URL. Absent → pure container. */
 		href?: string;
-		/** Child entries → renders as a collapsible section. */
+		/** Child entries → renders as a section. */
 		items?: MenuItem<M>[];
 	};
 
-/** Stored, normalized navigation tree consumed by the renderer. */
+/** Normalized navigation tree consumed by the renderer. */
 export type Menu<M = never> = MenuItem<M>[];
 
 /**
- * Authoring/adapter *input* value. The {@link MenuInput} is an **object keyed by
- * identity** (the item's `href`, or an arbitrary id for a pure container);
- * hierarchy is expressed by `parent` (another key), not by nesting. This makes
- * the keyed override (`{ ...generated, '/button': { … } }`) and adding a custom
- * child (point `parent` at a generated key) both trivial, and lets `parent` be
- * type-checked via `keyof` — no de-dup pass, no phantom brands.
+ * Authoring/adapter input entry. The input is **keyed by identity** (the item's
+ * `href`, or an arbitrary id for a pure container) and hierarchy comes from
+ * `parent`, not nesting — so a keyed override is plain object spread and
+ * `parent` can be type-checked via `keyof`.
  *
- * `Parent` is the union of sibling keys allowed for `parent`; {@link defineMenu}
- * infers it (`keyof` the input, including route paths from an adapter spread).
+ * `Parent` is the union of keys allowed for `parent`; {@link defineMenu} infers
+ * it from the input, including route paths spread in from an adapter.
  */
 export type MenuItemInput<
 	Parent extends string = string,
@@ -93,8 +83,8 @@ export type MenuItemInput<
 > = MenuItemBase<M> &
 	MetaField<M> & {
 		/**
-		 * Link target. Defaults to the entry's key. Set `false` for a
-		 * non-navigable container whose key is just an id.
+		 * Link target. Defaults to the entry's key. `false` for a non-navigable
+		 * container whose key is just an id.
 		 */
 		href?: string | false;
 		/** Key of the parent entry. Absent → top level. */
