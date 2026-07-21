@@ -3,6 +3,7 @@
 	"version": "0.1.0",
 	"description": "Router-agnostic navigation menu model, React renderer, and TanStack Router adapter",
 	"type": "module",
+	"sideEffects": false,
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",
@@ -30,9 +31,12 @@
 		"@biomejs/biome": "2.3.14",
 		"@tanstack/react-router": "^1.170.4",
 		"@tanstack/router-core": "^1.171.2",
+		"@testing-library/react": "^16.1.0",
 		"@types/node": "^22.0.0",
 		"@types/react": "^19.0.0",
+		"jsdom": "^26.0.0",
 		"react": "^19.0.0",
+		"react-dom": "^19.0.0",
 		"typescript": "5.9.3",
 		"vite": "^6.0.0",
 		"vite-plugin-dts": "^4.5.0",
@@ -40,11 +44,15 @@
 	},
 	"peerDependencies": {
 		"@tanstack/react-router": ">=1.168.0",
+		"@tanstack/router-core": ">=1.168.0",
 		"react": ">=18.0.0",
 		"typescript": ">=5.0.0"
 	},
 	"peerDependenciesMeta": {
 		"@tanstack/react-router": {
+			"optional": true
+		},
+		"@tanstack/router-core": {
 			"optional": true
 		},
 		"typescript": {

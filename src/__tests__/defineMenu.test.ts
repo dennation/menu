@@ -60,6 +60,17 @@ describe("defineMenu", () => {
 		warn.mockRestore();
 	});
 
+	it("warns when a `parent` cycle makes items unreachable", () => {
+		const input: MenuInput = {
+			"/a": { title: "A", parent: "/b" },
+			"/b": { title: "B", parent: "/a" },
+		};
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+		expect(defineMenu(input)).toEqual([]);
+		expect(warn).toHaveBeenCalledWith(expect.stringContaining("cyclic"));
+		warn.mockRestore();
+	});
+
 	it("overrides a keyed entry on spread (later wins, position kept)", () => {
 		const generated = {
 			"/button": { title: "Button" },

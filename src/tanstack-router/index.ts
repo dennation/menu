@@ -4,20 +4,19 @@ import type { ReactNode } from "react";
 import type { MenuItemInput } from "../types";
 
 /**
- * Per-route menu metadata: how the route *describes itself* in a menu. Read by
- * the adapter's default `getMeta` from `route.options.staticData.menu.meta`.
- * Composition decisions (excluding/overriding/ordering entries) belong to the
- * menu-authoring layer (`omit` here, keyed override / `parent` in `defineMenu`),
- * not here. Augment your route definitions:
+ * How a route describes itself in a menu, read by the adapter's default
+ * `getRouteMenu` from `route.options.staticData.menu`. Composition decisions
+ * (excluding, overriding, re-parenting) belong to the authoring layer — `omit`
+ * here, keyed override and `parent` in `defineMenu`.
  *
  * ```tsx
  * createFileRoute('/button')({
  *   component: ButtonPage,
- *   staticData: { menu: { meta: { title: 'Button', order: 1 } } },
+ *   staticData: { menu: { title: 'Button', order: 1 } },
  * })
  * ```
  */
-export interface RouteMenuMeta<M = never> {
+export interface RouteMenuEntry<M = never> {
 	/** Display title. Falls back to a title-cased last path segment. */
 	title?: string;
 	/** Sort hint among siblings (lower first). */
@@ -29,7 +28,9 @@ export interface RouteMenuMeta<M = never> {
 
 declare module "@tanstack/router-core" {
 	interface StaticDataRouteOption {
-		menu?: { meta?: RouteMenuMeta };
+		// `unknown` meta: a module augmentation can't be generic, so the concrete
+		// meta type is applied at the `menuFromRouteTree<Tree, M>` call site.
+		menu?: RouteMenuEntry<unknown>;
 	}
 }
 
@@ -39,19 +40,14 @@ export interface MenuFromRouteTreeOptions<
 > {
 	/** Route full-paths to exclude (and their subtrees). Typed against the tree. */
 	omit?: RoutePaths<TRouteTree>[];
-	/**
-	 * Where per-route metadata lives. Default reads
-	 * `route.options.staticData?.menu?.meta`. Returning a typed
-	 * {@link RouteMenuMeta} infers `M` for the generated input.
-	 */
-	getMeta?: (route: AnyRoute) => RouteMenuMeta<M> | undefined;
+	/** Where the per-route entry lives. Default: `route.options.staticData.menu`. */
+	getRouteMenu?: (route: AnyRoute) => RouteMenuEntry<M> | undefined;
 }
 
 /**
  * The adapter's return: a {@link MenuItemInput} map keyed by route full-path,
- * with each value's `parent` typed to the tree's route paths. Because object
- * spread keeps keys in the type, `defineMenu` can type `parent` against these
- * paths through the spread — no phantom brand needed.
+ * with `parent` typed to the tree's route paths. Object spread keeps keys in the
+ * type, so `defineMenu` can check `parent` against these paths through a spread.
  */
 export type RouteMenuInput<TRouteTree extends AnyRoute, M = never> = Partial<
 	Record<RoutePaths<TRouteTree>, MenuItemInput<RoutePaths<TRouteTree>, M>>
@@ -59,108 +55,85 @@ export type RouteMenuInput<TRouteTree extends AnyRoute, M = never> = Partial<
 
 /**
  * Build a keyed menu input from a TanStack Router route tree. Each entry is
- * keyed by `fullPath`, with `parent` pointing at the nearest navigable ancestor.
- * Spread the result into {@link defineMenu}, where `parent` is resolved into a
- * tree, sorted by `order`, and keyed overrides are applied:
+ * keyed by `fullPath`, with `parent` pointing at the nearest navigable ancestor;
+ * spread the result into `defineMenu` to resolve it into a tree:
  *
  * ```tsx
  * const menu = defineMenu({
  *   ...menuFromRouteTree(routeTree, { omit: ['/about'] }),
- *   // add a custom child into a generated section — `parent` is typed to the routes:
  *   '/changelog': { title: 'Changelog', parent: '/components' },
- *   '/button': { title: 'Button', icon: <Cube /> }, // overrides the generated /button
+ *   '/button': { title: 'Button', icon: <Cube /> }, // overrides the generated one
  * })
  * ```
  *
- * Traversal rules:
- * - the root and pathless/layout routes (no `path`) are transparent — their
- *   children attach to the nearest navigable ancestor (or the top level);
- * - a route with a `path` becomes an entry keyed by `fullPath`;
- * - routes in `omit` are dropped together with their subtree;
- * - `title` resolves to `meta.title` ?? title-cased last segment; `order`/`icon`
- *   come from `meta`.
+ * The root and pathless/layout routes are transparent — their children attach to
+ * the nearest navigable ancestor. Routes in `omit` are dropped with their subtree.
  */
 export function menuFromRouteTree<TRouteTree extends AnyRoute, M = never>(
 	routeTree: TRouteTree,
 	options: MenuFromRouteTreeOptions<TRouteTree, M> = {},
 ): RouteMenuInput<TRouteTree, M> {
 	const omit = new Set<string>(options.omit ?? []);
-	// `getMeta` is typed at `M` for callers; the resolver itself works at
-	// `unknown` meta (it never inspects the value) and casts the result at the end.
-	const getMeta = (options.getMeta ?? defaultGetMeta) as (
+	// Typed at `M` for callers; the resolver itself never inspects `meta`, so it
+	// works at `unknown` and casts the result back at the end.
+	const getRouteMenu = (options.getRouteMenu ?? defaultGetRouteMenu) as (
 		route: AnyRoute,
-	) => RouteMenuMeta<unknown> | undefined;
+	) => RouteMenuEntry<unknown> | undefined;
 	const entries: Record<string, MenuItemInput<string, unknown>> = {};
 
-	const visit = (
-		route: AnyRoute,
-		parentHref: string | undefined,
-		omitted: boolean,
-	): void => {
-		let childParentHref = parentHref;
-		let childOmitted = omitted;
+	const visit = (route: AnyRoute, parentKey: string | undefined): void => {
+		let childParentKey = parentKey;
 
 		if (!isTransparent(route)) {
-			const fullPath = fullPathOf(route);
-			if (omit.has(fullPath)) {
-				childOmitted = true; // drop this route and its subtree
-			} else if (!omitted) {
-				entries[fullPath] = toEntry(fullPath, parentHref, getMeta(route));
-				childParentHref = fullPath;
-			}
+			const { fullPath } = route;
+			if (omit.has(fullPath)) return; // drop this route with its subtree
+			entries[fullPath] = toEntry(fullPath, parentKey, getRouteMenu(route));
+			childParentKey = fullPath;
 		}
 
-		for (const child of childrenOf(route))
-			visit(child, childParentHref, childOmitted);
+		for (const child of childrenOf(route)) visit(child, childParentKey);
 	};
 
-	visit(routeTree, undefined, false);
+	visit(routeTree, undefined);
 	return entries as unknown as RouteMenuInput<TRouteTree, M>;
 }
 
-/** Build the menu entry for a navigable route. */
 function toEntry(
 	fullPath: string,
-	parentHref: string | undefined,
-	meta: RouteMenuMeta<unknown> | undefined,
+	parentKey: string | undefined,
+	route: RouteMenuEntry<unknown> | undefined,
 ): MenuItemInput<string, unknown> {
 	return {
-		title: meta?.title ?? titleFromPath(fullPath),
-		...(parentHref != null && { parent: parentHref }),
-		...(meta?.order != null && { order: meta.order }),
-		...(meta?.icon != null && { icon: meta.icon }),
-		...(meta?.meta !== undefined && { meta: meta.meta }),
+		title: route?.title ?? titleFromPath(fullPath),
+		...(parentKey != null && { parent: parentKey }),
+		...(route?.order != null && { order: route.order }),
+		...(route?.icon != null && { icon: route.icon }),
+		...(route?.meta !== undefined && { meta: route.meta }),
 	};
 }
 
 /** A route with no own path (root, pathless layout): its children bubble up. */
 function isTransparent(route: AnyRoute): boolean {
-	const isRoot = (route as { isRoot?: boolean }).isRoot === true;
-	const path = (route as { path?: string }).path;
-	return isRoot || path == null || path === "";
+	return route.isRoot === true || !route.path;
 }
 
-function fullPathOf(route: AnyRoute): string {
-	return (route as { fullPath: string }).fullPath;
-}
-
-/** Children of a route, normalized to an array (TanStack may store a record). */
+/** Children of a route, normalized to an array (TanStack also allows a record). */
 function childrenOf(route: AnyRoute): AnyRoute[] {
-	const children = (route as { children?: unknown }).children;
-	if (!children) return [];
-	return Array.isArray(children)
-		? children
-		: Object.values(children as Record<string, AnyRoute>);
-}
-
-function defaultGetMeta(route: AnyRoute): RouteMenuMeta | undefined {
-	const staticData = route.options?.staticData as
-		| { menu?: { meta?: RouteMenuMeta } }
+	const children = route.children as
+		| AnyRoute[]
+		| Record<string, AnyRoute>
 		| undefined;
-	return staticData?.menu?.meta;
+	if (!children) return [];
+	return Array.isArray(children) ? children : Object.values(children);
 }
 
-/** Title-case the last non-empty segment of a path (`/user-settings` → `User Settings`). */
+function defaultGetRouteMenu(
+	route: AnyRoute,
+): RouteMenuEntry<unknown> | undefined {
+	return route.options?.staticData?.menu;
+}
+
+/** Title-case the last non-empty segment (`/user-settings` → `User Settings`). */
 function titleFromPath(fullPath: string): string {
 	const segment = fullPath.split("/").filter(Boolean).at(-1);
 	if (!segment) return "Home";
