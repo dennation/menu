@@ -4,8 +4,8 @@ import {
 	createRouter,
 } from "@tanstack/react-router";
 import { describe, expect, it } from "vitest";
-import { defineMenu } from "../../defineMenu";
-import { menuFromRouteTree } from "../index";
+import { defineMenu } from "../../../defineMenu";
+import { menuInputFromRouteTree } from "../index";
 
 /** Build an initialized route tree (router init populates `fullPath`). */
 function buildTree() {
@@ -47,9 +47,9 @@ function buildTree() {
 	return routeTree;
 }
 
-describe("menuFromRouteTree", () => {
+describe("menuInputFromRouteTree", () => {
 	it("emits a keyed object with `parent` set to the nearest navigable ancestor", () => {
-		const input = menuFromRouteTree(buildTree());
+		const input = menuInputFromRouteTree(buildTree());
 		expect(input["/components/badge"]?.parent).toBe("/components");
 		// Bubbled up from the pathless `_layout` → no parent.
 		expect(input["/settings"]?.parent).toBeUndefined();
@@ -57,19 +57,21 @@ describe("menuFromRouteTree", () => {
 	});
 
 	it("reads title/order from staticData, falls back to a title-cased segment", () => {
-		const input = menuFromRouteTree(buildTree());
+		const input = menuInputFromRouteTree(buildTree());
 		expect(input["/button"]).toMatchObject({ title: "Button", order: 1 });
 		expect(input["/about"]?.title).toBe("About");
 	});
 
 	it("`omit`s a route together with its subtree", () => {
-		const input = menuFromRouteTree(buildTree(), { omit: ["/components"] });
+		const input = menuInputFromRouteTree(buildTree(), {
+			omit: ["/components"],
+		});
 		expect(input["/components"]).toBeUndefined();
 		expect(input["/components/badge"]).toBeUndefined(); // subtree dropped
 	});
 
 	it("composes into a nested tree via defineMenu", () => {
-		const menu = defineMenu(menuFromRouteTree(buildTree()));
+		const menu = defineMenu(menuInputFromRouteTree(buildTree()));
 		const components = menu.find((i) => i.href === "/components");
 		expect(components?.items?.map((i) => i.href)).toEqual([
 			"/components/badge",
@@ -82,7 +84,7 @@ describe("menuFromRouteTree", () => {
 
 	it("lets a custom child be injected into a generated section", () => {
 		const menu = defineMenu({
-			...menuFromRouteTree(buildTree()),
+			...menuInputFromRouteTree(buildTree()),
 			"/changelog": { title: "Changelog", parent: "/components" },
 		});
 		const components = menu.find((i) => i.href === "/components");
@@ -93,7 +95,7 @@ describe("menuFromRouteTree", () => {
 	});
 
 	it("honors a custom getRouteMenu", () => {
-		const input = menuFromRouteTree(buildTree(), {
+		const input = menuInputFromRouteTree(buildTree(), {
 			getRouteMenu: (route) =>
 				route.fullPath === "/about"
 					? { title: "Custom About", order: 0 }

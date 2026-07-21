@@ -12,9 +12,9 @@ export default defineConfig({
 			entry: {
 				index: resolve(__dirname, "src/index.ts"),
 				"react/index": resolve(__dirname, "src/react/index.ts"),
-				"tanstack-router/index": resolve(
+				"adapters/tanstack-router/index": resolve(
 					__dirname,
-					"src/tanstack-router/index.ts",
+					"src/adapters/tanstack-router/index.ts",
 				),
 			},
 			formats: ["es"],

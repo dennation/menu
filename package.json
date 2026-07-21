@@ -13,9 +13,9 @@
 			"types": "./dist/react/index.d.ts",
 			"import": "./dist/react/index.mjs"
 		},
-		"./tanstack-router": {
-			"types": "./dist/tanstack-router/index.d.ts",
-			"import": "./dist/tanstack-router/index.mjs"
+		"./adapters/tanstack-router": {
+			"types": "./dist/adapters/tanstack-router/index.d.ts",
+			"import": "./dist/adapters/tanstack-router/index.mjs"
 		}
 	},
 	"files": [
