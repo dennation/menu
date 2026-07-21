@@ -1,6 +1,6 @@
 {
 	"name": "@dennation/menu",
-	"version": "0.0.0",
+	"version": "0.1.0",
 	"description": "Headless, typesafe, router-agnostic navigation menu — a data model, a React renderer, and a useMenu hook.",
 	"keywords": [
 		"menu",
