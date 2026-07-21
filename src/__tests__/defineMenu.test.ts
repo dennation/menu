@@ -49,6 +49,15 @@ describe("defineMenu", () => {
 		expect(menu[0].items?.[0].href).toBe("/c");
 	});
 
+	it("exposes the input key as a stable `id` (even on href-less containers)", () => {
+		const menu = defineMenu({
+			grp: { title: "Group", href: false },
+			"/c": { title: "Child", parent: "grp" },
+		});
+		expect(menu[0].id).toBe("grp");
+		expect(menu[0].items?.[0].id).toBe("/c");
+	});
+
 	it("hoists items with an unknown parent to the top level (with a warning)", () => {
 		// Unknown-parent literals are a compile error; the runtime safety net is for
 		// dynamically built menus where `parent` widens to `string`.
