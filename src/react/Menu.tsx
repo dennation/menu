@@ -19,9 +19,7 @@ interface MenuItemPropsBase<M = never> {
 
 /**
  * A **collapsible section** — an item with children and `collapsible !== false`.
- * Only this variant carries the disclosure state: `open` and `toggle` are
- * present and **required**, alongside the already-rendered nested level as
- * `children`. The consumer still owns the link/icon/active state (its router).
+ * Only this variant carries the disclosure state.
  */
 export interface CollapsibleMenuItemProps<M = never>
 	extends MenuItemPropsBase<M> {
@@ -36,8 +34,8 @@ export interface CollapsibleMenuItemProps<M = never>
 
 /**
  * A **non-collapsible entry** — a leaf link (no `children`) or an always-open
- * group header (`collapsible: false`, `children` present and always shown).
- * There is nothing to toggle, so `open`/`toggle` are absent from the type.
+ * group header (`collapsible: false`). Nothing to toggle, so `open`/`toggle`
+ * are absent from the type.
  */
 export interface StaticMenuItemProps<M = never> extends MenuItemPropsBase<M> {
 	collapsible: false;
@@ -45,7 +43,7 @@ export interface StaticMenuItemProps<M = never> extends MenuItemPropsBase<M> {
 	children?: ReactNode;
 }
 
-/** Discriminated on `collapsible`: only the collapsible variant has `open`/`toggle`. */
+/** Discriminated on `collapsible`: only that variant has `open`/`toggle`. */
 export type MenuItemProps<M = never> =
 	| CollapsibleMenuItemProps<M>
 	| StaticMenuItemProps<M>;
@@ -62,34 +60,31 @@ export interface MenuProps<M = never> {
 }
 
 /**
- * Router-agnostic sidebar/nav renderer. Owns the open/closed state of
- * collapsible sections, the recursion, and the `before`/`after` slots (rendered
- * as the `Item`'s direct siblings, no wrapper). It knows nothing about the
- * current path or active state — that lives entirely in the consumer's `Item`
- * (which asks its own router).
+ * Router-agnostic sidebar/nav renderer. Owns the disclosure state of collapsible
+ * sections, the recursion, and the `before`/`after` slots (rendered as the
+ * `Item`'s direct siblings, no wrapper). It knows nothing about the current path
+ * — active state lives in the consumer's `Item`, which asks its own router.
  *
- * `Container` is the single outer shell wrapping the whole menu; nested levels
- * are rendered as a bare list of `Item`s and handed to the parent `Item` as
- * `children`, so the per-level wrapper (e.g. a nested `<ul>`) is the `Item`'s
- * own concern.
+ * `Container` is the single outer shell; a nested level is rendered as a bare
+ * list of `Item`s and handed to the parent `Item` as `children`, so the
+ * per-level wrapper (e.g. a nested `<ul>`) is the `Item`'s own concern.
  *
  * Collapsibility is data-driven: an item with children is collapsible unless it
- * sets `collapsible: false` (an always-open group). The `Item` is handed the
- * matching prop variant, so `open`/`toggle` only exist where they mean something.
+ * sets `collapsible: false`, and the `Item` gets the matching prop variant.
  */
 export function Menu<M = never>({
 	menu,
 	components: { Container, Item },
 }: MenuProps<M>) {
 	// Disclosure state of collapsible sections, keyed by position path ("0.2.1").
-	// Kept above the tree so a section remembers its state even while collapsed.
+	// Kept above the tree so a section remembers its state while collapsed.
 	const [openByPath, setOpenByPath] = useState<Record<string, boolean>>({});
 
+	const isOpen = (path: string, item: MenuItem<M>): boolean =>
+		openByPath[path] ?? item.defaultOpen ?? DEFAULT_OPEN;
+
 	const toggle = (path: string, item: MenuItem<M>): void =>
-		setOpenByPath((state) => ({
-			...state,
-			[path]: !(state[path] ?? item.defaultOpen ?? DEFAULT_OPEN),
-		}));
+		setOpenByPath((state) => ({ ...state, [path]: !isOpen(path, item) }));
 
 	function renderLevel(
 		items: MenuModel<M>,
@@ -106,9 +101,7 @@ export function Menu<M = never>({
 				: undefined;
 			// A collapsible section follows its toggle; a static group is always
 			// open; a leaf has nothing to open.
-			const open = isCollapsible
-				? (openByPath[path] ?? item.defaultOpen ?? DEFAULT_OPEN)
-				: hasChildren;
+			const open = isCollapsible ? isOpen(path, item) : hasChildren;
 			const slotState: MenuItemState = { open, level };
 
 			return (
